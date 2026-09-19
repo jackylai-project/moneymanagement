@@ -1,0 +1,657 @@
+<title>配速記帳</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --bg: #F6F5F2;
+    --surface: #FFFFFF;
+    --surface-2: #EDEBE6;
+    --ink: #1A1D21;
+    --ink-2: #5C6469;
+    --ink-3: #8A9298;
+    --line: #DEDBD4;
+    --accent: #27456B;
+    --accent-soft: #E1E8F0;
+    --accent-ink: #FFFFFF;
+    --good: #2E7D53; --good-soft: #E2F0E8;
+    --warn: #A97B14; --warn-soft: #F6EDD7;
+    --bad: #AF3A2D;  --bad-soft: #F7E3E0;
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
+    --s4: #eda100; --s5: #e87ba4; --s6: #008300;
+    --shadow: 0 1px 2px rgba(26, 29, 33, .05), 0 12px 28px -18px rgba(26, 29, 33, .3);
+    --sans: "Noto Sans TC", system-ui, -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121518; --surface: #1A1E23; --surface-2: #242A30;
+      --ink: #E8EAEC; --ink-2: #9AA3AA; --ink-3: #737C83; --line: #2C333A;
+      --accent: #7FA5D4; --accent-soft: #16283C; --accent-ink: #0B1620;
+      --good: #4FA877; --good-soft: #12281D;
+      --warn: #CF9E3A; --warn-soft: #2C2310;
+      --bad: #D9695A;  --bad-soft: #2E1815;
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+      --s4: #c98500; --s5: #d55181; --s6: #008300;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 28px -18px rgba(0,0,0,.75);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121518; --surface: #1A1E23; --surface-2: #242A30;
+    --ink: #E8EAEC; --ink-2: #9AA3AA; --ink-3: #737C83; --line: #2C333A;
+    --accent: #7FA5D4; --accent-soft: #16283C; --accent-ink: #0B1620;
+    --good: #4FA877; --good-soft: #12281D;
+    --warn: #CF9E3A; --warn-soft: #2C2310;
+    --bad: #D9695A;  --bad-soft: #2E1815;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+    --s4: #c98500; --s5: #d55181; --s6: #008300;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 28px -18px rgba(0,0,0,.75);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--sans); font-size: 15px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { margin: 0; font-weight: 700; line-height: 1.3; text-wrap: balance; }
+  .n { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+  /* header */
+  .top {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30;
+    background: color-mix(in srgb, var(--bg) 90%, transparent);
+    backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
+  }
+  .top-in { max-width: 1080px; margin: 0 auto; padding-inline: 16px; padding-block: 11px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .logo { font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
+  .logo em { font-style: normal; color: var(--accent); }
+  .grow { flex: 1 1 auto; }
+  .tag { font-family: var(--mono); font-size: 11px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-2); white-space: nowrap; }
+
+  .tabs { max-width: 1080px; margin: 0 auto; padding-inline: 16px; display: flex; gap: 4px; }
+  .tabs button {
+    background: none; border: 0; border-bottom: 2px solid transparent;
+    padding: 9px 12px; font-family: var(--sans); font-size: 14px; font-weight: 500;
+    color: var(--ink-2); cursor: pointer; border-radius: 0;
+  }
+  .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 72px; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+  .card + .card { margin-top: 16px; }
+  .card-hd { padding: 13px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .card-hd h2 { font-size: 15px; }
+  .card-hd .hint { font-size: 12px; color: var(--ink-3); }
+  .card-bd { padding: 16px; }
+
+  /* hero */
+  .kpis { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 1px; background: var(--line); border-radius: 12px; overflow: hidden; }
+  @media (max-width: 620px) { .kpis { grid-template-columns: 1fr; } }
+  .kpi { background: var(--surface); padding: 15px 17px; }
+  .kpi .k { font-size: 12px; color: var(--ink-3); letter-spacing: .02em; }
+  .kpi .v { font-family: var(--mono); font-size: 27px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.25; margin-top: 2px; }
+  .kpi .s { font-size: 12px; color: var(--ink-2); }
+  .kpi.hero .v { color: var(--accent); }
+  .v.ok { color: var(--good); } .v.warn { color: var(--warn); } .v.bad { color: var(--bad); }
+
+  /* allocation bar */
+  .alloc { display: flex; gap: 2px; height: 30px; border-radius: 5px; overflow: hidden; margin-bottom: 12px; }
+  .alloc span { display: block; height: 100%; }
+  .alloc span:first-child { border-radius: 5px 0 0 5px; }
+  .alloc span:last-child { border-radius: 0 5px 5px 0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+  .lg { display: flex; align-items: center; gap: 7px; font-size: 13px; }
+  .lg i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .lg .lgp { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: 12px; }
+
+  /* category cards */
+  .cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .cat { border: 1px solid var(--line); border-radius: 10px; padding: 13px 14px; background: var(--surface); }
+  .cat-hd { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+  .cat-hd i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .cat-hd .cn { font-weight: 500; font-size: 14px; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .st { font-family: var(--mono); font-size: 10.5px; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
+  .st-ok { background: var(--good-soft); color: var(--good); }
+  .st-warn { background: var(--warn-soft); color: var(--warn); }
+  .st-bad { background: var(--bad-soft); color: var(--bad); }
+  .cat-fig { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink-2); }
+  .cat-fig b { color: var(--ink); font-weight: 700; font-size: 15px; }
+
+  .track { position: relative; height: 9px; background: var(--surface-2); border-radius: 4px; margin: 10px 0 6px; overflow: hidden; }
+  .fill { height: 100%; border-radius: 4px; }
+  .pace { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); opacity: .55; border-radius: 1px; }
+  .cat-ft { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; color: var(--ink-3); }
+  .cat-ft .n { color: var(--ink-2); }
+
+  /* forms */
+  label.f { display: block; }
+  label.f > .lb { display: block; font-size: 12px; color: var(--ink-2); margin-bottom: 4px; }
+  input, select, textarea {
+    width: 100%; font-family: var(--sans); font-size: 14px; color: var(--ink);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+  }
+  input[type="number"], input[type="date"] { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .grid4 { display: grid; grid-template-columns: 110px 1fr 130px 130px; gap: 10px; align-items: end; }
+  @media (max-width: 760px) { .grid4 { grid-template-columns: 1fr 1fr; } }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } }
+
+  button.b { font-family: var(--sans); font-size: 14px; font-weight: 500; border: 1px solid transparent; border-radius: 8px; padding: 8px 15px; cursor: pointer; }
+  button.b:hover:not(:disabled) { filter: brightness(1.08); }
+  button.b:disabled { opacity: .45; cursor: not-allowed; }
+  .b-go { background: var(--accent); color: var(--accent-ink); }
+  .b-q { background: var(--surface-2); color: var(--ink); border-color: var(--line); }
+  .b-sm { padding: 5px 10px; font-size: 12.5px; }
+  .b-danger { background: transparent; color: var(--bad); border-color: var(--line); }
+  .actions { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; }
+  .msg { font-size: 13px; color: var(--ink-2); }
+  .msg.err { color: var(--bad); }
+
+  /* expense list */
+  .exp { display: grid; grid-template-columns: 74px 1fr auto auto; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .exp:last-child { border-bottom: 0; }
+  .exp .d { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .exp .t { min-width: 0; }
+  .exp .t .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .exp .t .mt { font-size: 11.5px; color: var(--ink-3); display: flex; gap: 6px; align-items: center; }
+  .exp .t .mt i { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+  .exp .a { font-family: var(--mono); font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  @media (max-width: 480px) { .exp { grid-template-columns: 60px 1fr auto; } .exp .x { grid-column: 3; } }
+
+  /* settings */
+  .crow { display: grid; grid-template-columns: 1fr 86px 110px auto; gap: 9px; align-items: center; margin-bottom: 9px; }
+  @media (max-width: 620px) { .crow { grid-template-columns: 1fr 1fr; } .crow .x { grid-column: 2; justify-self: end; } }
+  .crow .sw { width: 12px; height: 12px; border-radius: 3px; }
+  .presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+  .total-line { font-family: var(--mono); font-size: 13px; padding: 9px 12px; border-radius: 8px; background: var(--surface-2); margin-top: 10px; }
+  .total-line.bad { background: var(--bad-soft); color: var(--bad); }
+  .total-line.ok { background: var(--good-soft); color: var(--good); }
+
+  .empty { color: var(--ink-3); font-size: 13.5px; text-align: center; padding: 26px 8px; }
+  .note { font-size: 12.5px; color: var(--ink-3); margin-top: 10px; line-height: 1.55; }
+  .demo-bar { background: var(--warn-soft); color: var(--warn); font-size: 13px; padding: 9px 13px; border-radius: 9px; margin-bottom: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .sec { font-size: 11.5px; letter-spacing: .09em; color: var(--ink-3); font-family: var(--mono); margin: 20px 0 9px; display: flex; align-items: center; gap: 10px; }
+  .sec::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  @media (prefers-reduced-motion: reduce) { * { transition-duration: .01ms !important; animation-duration: .01ms !important; } }
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <span class="logo">配速<em>記帳</em></span>
+    <span class="grow"></span>
+    <span class="tag" id="cycleTag">—</span>
+    <span class="tag" id="storeTag">—</span>
+  </div>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-today" aria-selected="true" aria-controls="p-today">今日</button>
+    <button role="tab" id="tab-log" aria-selected="false" aria-controls="p-log">記帳</button>
+    <button role="tab" id="tab-set" aria-selected="false" aria-controls="p-set">分配設定</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="demo-bar" id="demoBar" hidden>
+    <span>目前顯示的是範例資料，不是你的真實支出。</span>
+    <button class="b b-q b-sm" id="clearDemo">清除範例，開始記我自己的</button>
+  </div>
+
+  <!-- ===== 今日 ===== -->
+  <section id="p-today" role="tabpanel" aria-labelledby="tab-today">
+    <div class="kpis" id="kpis"></div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-hd"><h2>這個月的錢怎麼分</h2><span class="hint" id="incomeHint"></span></div>
+      <div class="card-bd">
+        <div class="alloc" id="allocBar"></div>
+        <div class="legend" id="allocLegend"></div>
+      </div>
+    </div>
+
+    <div class="sec">各類別狀況</div>
+    <div class="cats" id="cats"></div>
+    <p class="note">進度條上那條深色細線，是「以今天來說，正常應該花到的位置」。<strong>條子超過細線 = 花太快</strong>；儲蓄與投資類別相反，落後細線才要緊張。</p>
+  </section>
+
+  <!-- ===== 記帳 ===== -->
+  <section id="p-log" role="tabpanel" aria-labelledby="tab-log" hidden>
+    <div class="card">
+      <div class="card-hd"><h2>記一筆</h2><span class="hint">現金、刷卡、行動支付都記在這</span></div>
+      <div class="card-bd">
+        <div class="grid4">
+          <label class="f"><span class="lb">金額</span><input type="number" id="e-amt" min="0" step="1" placeholder="0"></label>
+          <label class="f"><span class="lb">項目</span><input type="text" id="e-note" placeholder="午餐、捷運、電影票…"></label>
+          <label class="f"><span class="lb">類別</span><select id="e-cat"></select></label>
+          <label class="f"><span class="lb">支付方式</span><select id="e-method">
+            <option value="cash">現金</option><option value="card">信用卡</option>
+            <option value="mobile">行動支付</option><option value="transfer">轉帳／自動扣款</option>
+          </select></label>
+        </div>
+        <div class="grid2" style="margin-top:10px">
+          <label class="f"><span class="lb">日期</span><input type="date" id="e-date"></label>
+          <div class="actions" style="align-items:flex-end;height:100%">
+            <button class="b b-go" id="addExp">加入</button>
+            <span class="msg" id="expMsg"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h2>本期明細</h2><span class="hint" id="expCount"></span></div>
+      <div class="card-bd"><div id="expList"></div></div>
+    </div>
+  </section>
+
+  <!-- ===== 設定 ===== -->
+  <section id="p-set" role="tabpanel" aria-labelledby="tab-set" hidden>
+    <div class="card">
+      <div class="card-hd"><h2>收入與週期</h2></div>
+      <div class="card-bd">
+        <div class="grid2">
+          <label class="f"><span class="lb">每月收入（實際入帳金額）</span><input type="number" id="s-income" min="0" step="1000"></label>
+          <label class="f"><span class="lb">發薪日（每月幾號，1–28）</span><input type="number" id="s-payday" min="1" max="28" step="1"></label>
+        </div>
+        <p class="note">週期以發薪日起算，不是曆月。發薪日限 1–28 號，因為 29–31 號在某些月份不存在，會讓週期長度算不準。</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h2>分配框架</h2><span class="hint">選一個套用，或自己調</span></div>
+      <div class="card-bd">
+        <div class="presets">
+          <button class="b b-q b-sm" data-preset="503020">50 / 30 / 20 法則</button>
+          <button class="b b-q b-sm" data-preset="jars">六個罐子</button>
+          <button class="b b-q b-sm" data-preset="4321">4321 法則</button>
+        </div>
+        <div class="sec" style="margin-top:16px">類別（最多 6 項）</div>
+        <div id="catEditor"></div>
+        <div class="actions" style="margin-top:10px">
+          <button class="b b-q b-sm" id="addCat">新增類別</button>
+        </div>
+        <div class="total-line" id="totalLine"></div>
+        <p class="note"><strong>類型</strong>決定這一類怎麼被判讀：<em>支出</em>花得越快越危險；<em>投資</em>與<em>儲蓄</em>相反，是進度落後才該提醒。這也是消費頁與投資頁能放在一起看的原因。</p>
+        <div class="actions" style="margin-top:14px">
+          <button class="b b-go" id="saveSet">儲存設定</button>
+          <span class="msg" id="setMsg"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var LS = "pace-budget-v1";
+  var SERIES = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)", "var(--s6)"];
+  var METHOD = { cash: "現金", card: "信用卡", mobile: "行動支付", transfer: "轉帳" };
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function nt(n) { return "NT$" + Math.round(n).toLocaleString("en-US"); }
+  function clamp(n, lo, hi) { n = Number(n); return isFinite(n) ? Math.min(hi, Math.max(lo, n)) : lo; }
+  function uid() { return "x" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function iso(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+
+  // ---------- presets ----------
+  var PRESETS = {
+    "503020": [
+      { name: "必要支出", pct: 50, type: "spend" },
+      { name: "想要／娛樂", pct: 30, type: "spend" },
+      { name: "儲蓄投資", pct: 20, type: "invest" }
+    ],
+    jars: [
+      { name: "生活必需", pct: 55, type: "spend" },
+      { name: "休閒娛樂", pct: 10, type: "spend" },
+      { name: "教育訓練", pct: 10, type: "spend" },
+      { name: "財務自由", pct: 10, type: "invest" },
+      { name: "長期儲蓄", pct: 10, type: "save" },
+      { name: "貢獻付出", pct: 5, type: "spend" }
+    ],
+    "4321": [
+      { name: "生活開銷", pct: 40, type: "spend" },
+      { name: "儲蓄投資", pct: 30, type: "invest" },
+      { name: "保險保障", pct: 20, type: "spend" },
+      { name: "緊急預備", pct: 10, type: "save" }
+    ]
+  };
+
+  function withIds(list) {
+    return list.map(function (c) { return { id: uid(), name: c.name, pct: c.pct, type: c.type }; });
+  }
+
+  // ---------- state ----------
+  var state = null;
+
+  function defaultState() {
+    var cats = withIds(PRESETS["503020"]);
+    var now = new Date();
+    var seed = [
+      { amt: 168, note: "午餐便當", ci: 0, m: "cash", back: 1 },
+      { amt: 1450, note: "電信費", ci: 0, m: "transfer", back: 2 },
+      { amt: 890, note: "超市採買", ci: 0, m: "card", back: 3 },
+      { amt: 620, note: "朋友聚餐", ci: 1, m: "mobile", back: 2 },
+      { amt: 330, note: "串流訂閱", ci: 1, m: "card", back: 5 },
+      { amt: 5000, note: "定期定額 ETF", ci: 2, m: "transfer", back: 4 }
+    ];
+    return {
+      income: 70000, payday: 5, demo: true,
+      categories: cats,
+      expenses: seed.map(function (s) {
+        var d = new Date(now); d.setDate(d.getDate() - s.back);
+        return { id: uid(), date: iso(d), amount: s.amt, categoryId: cats[s.ci].id, note: s.note, method: s.m };
+      })
+    };
+  }
+
+  function normalizeState(s) {
+    if (!s || typeof s !== "object") return defaultState();
+    var cats = Array.isArray(s.categories) ? s.categories.filter(function (c) { return c && c.id; }).slice(0, 6) : [];
+    if (!cats.length) cats = withIds(PRESETS["503020"]);
+    var ids = {};
+    cats.forEach(function (c) { ids[c.id] = 1; });
+    return {
+      income: clamp(s.income, 0, 1e9) || 0,
+      payday: Math.round(clamp(s.payday, 1, 28)) || 1,
+      demo: !!s.demo,
+      categories: cats.map(function (c) {
+        return { id: String(c.id), name: String(c.name || "未命名"), pct: clamp(c.pct, 0, 100), type: ["spend", "invest", "save"].indexOf(c.type) >= 0 ? c.type : "spend" };
+      }),
+      expenses: (Array.isArray(s.expenses) ? s.expenses : []).filter(function (e) {
+        return e && e.id && ids[e.categoryId];
+      }).map(function (e) {
+        return { id: String(e.id), date: String(e.date), amount: clamp(e.amount, 0, 1e9), categoryId: String(e.categoryId), note: String(e.note || ""), method: METHOD[e.method] ? e.method : "cash" };
+      })
+    };
+  }
+
+  // ---------- storage: db if available, else localStorage ----------
+  var store = {
+    db: null, ref: null, mode: "local", chain: Promise.resolve(),
+    async init() {
+      var d = null;
+      try { d = window.claude && window.claude.use ? await window.claude.use("db") : null; } catch (e) { d = null; }
+      if (d) {
+        try {
+          this.db = d; this.ref = d.doc("budget/state");
+          var snap = await this.ref.get();
+          this.mode = "cloud";
+          if (snap.exists) return normalizeState(snap.data());
+          var local = this.readLocal();
+          var seeded = local || defaultState();
+          await this.ref.set(seeded);
+          return normalizeState(seeded);
+        } catch (e) { this.db = null; this.ref = null; this.mode = "local"; }
+      }
+      return normalizeState(this.readLocal() || defaultState());
+    },
+    readLocal() {
+      try { var r = localStorage.getItem(LS); return r ? JSON.parse(r) : null; } catch (e) { return null; }
+    },
+    save(s) {
+      try { localStorage.setItem(LS, JSON.stringify(s)); } catch (e) { /* private mode */ }
+      if (!this.ref) return;
+      var ref = this.ref, payload = JSON.parse(JSON.stringify(s));
+      this.chain = this.chain.then(function () { return ref.set(payload); }).catch(function () { });
+    }
+  };
+
+  function persist() { store.save(state); }
+
+  // ---------- cycle math ----------
+  function cycle(now, payday) {
+    var start = new Date(now.getFullYear(), now.getMonth(), payday);
+    if (now.getDate() < payday) start = new Date(now.getFullYear(), now.getMonth() - 1, payday);
+    var end = new Date(start.getFullYear(), start.getMonth() + 1, payday);
+    var total = Math.round((end - start) / 86400000);
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var elapsed = Math.floor((today - start) / 86400000) + 1;
+    elapsed = Math.min(Math.max(elapsed, 1), total);
+    return { start: start, end: end, total: total, elapsed: elapsed, left: total - elapsed + 1, ideal: elapsed / total };
+  }
+
+  function compute() {
+    var cy = cycle(new Date(), state.payday);
+    var s0 = iso(cy.start), s1 = iso(cy.end);
+    var inCycle = state.expenses.filter(function (e) { return e.date >= s0 && e.date < s1; });
+    var used = {};
+    inCycle.forEach(function (e) { used[e.categoryId] = (used[e.categoryId] || 0) + e.amount; });
+
+    var cats = state.categories.map(function (c, i) {
+      var budget = state.income * c.pct / 100;
+      var u = used[c.id] || 0;
+      var ratio = budget > 0 ? u / budget : 0;
+      var st;
+      if (c.type === "spend") {
+        if (ratio > 1) st = "bad";
+        else if (ratio > cy.ideal + 0.05) st = "warn";
+        else st = "ok";
+      } else {
+        if (ratio >= cy.ideal - 0.02) st = "ok";
+        else if (ratio >= cy.ideal - 0.2) st = "warn";
+        else st = "bad";
+      }
+      return { c: c, i: i, color: SERIES[i % SERIES.length], budget: budget, used: u, left: budget - u, ratio: ratio, st: st };
+    });
+
+    var spend = cats.filter(function (r) { return r.c.type === "spend"; });
+    var spendBudget = spend.reduce(function (a, r) { return a + r.budget; }, 0);
+    var spendUsed = spend.reduce(function (a, r) { return a + r.used; }, 0);
+    var spendLeft = spendBudget - spendUsed;
+    var daily = cy.left > 0 ? spendLeft / cy.left : 0;
+    var projected = cy.elapsed > 0 ? (spendUsed / cy.elapsed) * cy.total : 0;
+
+    return { cy: cy, cats: cats, inCycle: inCycle, spendBudget: spendBudget, spendUsed: spendUsed, spendLeft: spendLeft, daily: daily, projected: projected };
+  }
+
+  // ---------- render ----------
+  function renderToday(m) {
+    $("cycleTag").textContent = "第 " + m.cy.elapsed + " / " + m.cy.total + " 天";
+    $("storeTag").textContent = store.mode === "cloud" ? "雲端同步" : "本機儲存";
+    $("demoBar").hidden = !state.demo;
+
+    var over = m.projected > m.spendBudget;
+    var diff = Math.abs(m.projected - m.spendBudget);
+    $("kpis").innerHTML =
+      '<div class="kpi hero"><div class="k">接下來每天可以花</div><div class="v">' + esc(nt(Math.max(m.daily, 0))) + '</div>' +
+      '<div class="s">可支配剩餘 ' + esc(nt(Math.max(m.spendLeft, 0))) + ' ÷ 還有 ' + m.cy.left + ' 天</div></div>' +
+      '<div class="kpi"><div class="k">本期已花（不含投資儲蓄）</div><div class="v ' + (m.spendUsed > m.spendBudget ? "bad" : "") + '">' + esc(nt(m.spendUsed)) + '</div>' +
+      '<div class="s">預算 ' + esc(nt(m.spendBudget)) + ' · 已過 ' + Math.round(m.cy.ideal * 100) + '%</div></div>' +
+      '<div class="kpi"><div class="k">照這個速度，月底會</div><div class="v ' + (over ? "bad" : "ok") + '">' + (over ? "超支 " : "省下 ") + esc(nt(diff)) + '</div>' +
+      '<div class="s">推估總支出 ' + esc(nt(m.projected)) + '</div></div>';
+
+    $("incomeHint").textContent = "月收入 " + nt(state.income) + " · 發薪日 " + state.payday + " 號";
+
+    var totalPct = state.categories.reduce(function (a, c) { return a + c.pct; }, 0) || 1;
+    $("allocBar").innerHTML = m.cats.map(function (r) {
+      return '<span style="width:' + (r.c.pct / totalPct * 100).toFixed(2) + '%;background:' + r.color + '"></span>';
+    }).join("");
+    $("allocLegend").innerHTML = m.cats.map(function (r) {
+      return '<span class="lg"><i style="background:' + r.color + '"></i>' + esc(r.c.name) +
+        '<span class="lgp">' + r.c.pct + "% · " + esc(nt(r.budget)) + "</span></span>";
+    }).join("");
+
+    $("cats").innerHTML = m.cats.map(function (r) {
+      var isSpend = r.c.type === "spend";
+      var label = { spend: "支出", invest: "投資", save: "儲蓄" }[r.c.type];
+      var stText = isSpend
+        ? ({ ok: "步調正常", warn: "花太快", bad: "已超支" })[r.st]
+        : ({ ok: "進度達標", warn: "略落後", bad: "落後太多" })[r.st];
+      var w = Math.min(r.ratio, 1) * 100;
+      return '<div class="cat">' +
+        '<div class="cat-hd"><i style="background:' + r.color + '"></i>' +
+        '<span class="cn">' + esc(r.c.name) + '</span>' +
+        '<span class="st st-' + r.st + '">' + esc(stText) + "</span></div>" +
+        '<div class="cat-fig"><b>' + esc(nt(isSpend ? Math.max(r.left, 0) : r.used)) + "</b> " +
+        (isSpend ? "可用" : "已投入") + " / " + esc(nt(r.budget)) + "</div>" +
+        '<div class="track"><div class="fill" style="width:' + w.toFixed(1) + "%;background:" + r.color + '"></div>' +
+        '<div class="pace" style="left:calc(' + (m.cy.ideal * 100).toFixed(1) + '% - 1px)"></div></div>' +
+        '<div class="cat-ft"><span>' + esc(label) + '</span><span class="n">' + Math.round(r.ratio * 100) + "% / 應為 " + Math.round(m.cy.ideal * 100) + "%</span></div>" +
+        "</div>";
+    }).join("");
+  }
+
+  function renderLog(m) {
+    var sel = $("e-cat");
+    sel.innerHTML = state.categories.map(function (c) {
+      return '<option value="' + esc(c.id) + '">' + esc(c.name) + "</option>";
+    }).join("");
+
+    $("expCount").textContent = m.inCycle.length + " 筆 · 共 " + nt(m.inCycle.reduce(function (a, e) { return a + e.amount; }, 0));
+    if (!m.inCycle.length) { $("expList").innerHTML = '<div class="empty">本期還沒有任何紀錄。</div>'; return; }
+
+    var byId = {};
+    m.cats.forEach(function (r) { byId[r.c.id] = r; });
+    var sorted = m.inCycle.slice().sort(function (a, b) { return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0); });
+    $("expList").innerHTML = sorted.map(function (e) {
+      var r = byId[e.categoryId];
+      return '<div class="exp">' +
+        '<div class="d">' + esc(e.date.slice(5)) + "</div>" +
+        '<div class="t"><div class="nm">' + esc(e.note || "（未命名）") + "</div>" +
+        '<div class="mt"><i style="background:' + (r ? r.color : "var(--ink-3)") + '"></i>' +
+        esc(r ? r.c.name : "—") + " · " + esc(METHOD[e.method]) + "</div></div>" +
+        '<div class="a">' + esc(nt(e.amount)) + "</div>" +
+        '<div class="x"><button class="b b-q b-sm" data-del="' + esc(e.id) + '">刪</button></div>' +
+        "</div>";
+    }).join("");
+  }
+
+  function renderSet() {
+    $("s-income").value = state.income;
+    $("s-payday").value = state.payday;
+    $("catEditor").innerHTML = state.categories.map(function (c, i) {
+      return '<div class="crow" data-row="' + esc(c.id) + '">' +
+        '<div style="display:flex;gap:8px;align-items:center;min-width:0">' +
+        '<span class="sw" style="background:' + SERIES[i % SERIES.length] + '"></span>' +
+        '<input type="text" data-k="name" value="' + esc(c.name) + '" aria-label="類別名稱"></div>' +
+        '<input type="number" data-k="pct" min="0" max="100" step="1" value="' + c.pct + '" aria-label="佔比">' +
+        '<select data-k="type" aria-label="類型">' +
+        '<option value="spend"' + (c.type === "spend" ? " selected" : "") + ">支出</option>" +
+        '<option value="invest"' + (c.type === "invest" ? " selected" : "") + ">投資</option>" +
+        '<option value="save"' + (c.type === "save" ? " selected" : "") + ">儲蓄</option></select>" +
+        '<div class="x"><button class="b b-danger b-sm" data-rm="' + esc(c.id) + '">移除</button></div>' +
+        "</div>";
+    }).join("");
+    updateTotal();
+  }
+
+  function readEditor() {
+    return Array.prototype.slice.call($("catEditor").querySelectorAll("[data-row]")).map(function (row) {
+      return {
+        id: row.getAttribute("data-row"),
+        name: row.querySelector('[data-k="name"]').value.trim() || "未命名",
+        pct: clamp(row.querySelector('[data-k="pct"]').value, 0, 100),
+        type: row.querySelector('[data-k="type"]').value
+      };
+    });
+  }
+
+  function updateTotal() {
+    var t = readEditor().reduce(function (a, c) { return a + c.pct; }, 0);
+    var el = $("totalLine");
+    el.className = "total-line " + (t === 100 ? "ok" : "bad");
+    el.textContent = t === 100 ? "合計 100% ✓" : "合計 " + t + "% —— 必須剛好 100% 才能儲存（差 " + (100 - t) + "%）";
+  }
+
+  function renderAll() {
+    var m = compute();
+    renderToday(m); renderLog(m);
+  }
+
+  // ---------- events ----------
+  var tabs = [["tab-today", "p-today"], ["tab-log", "p-log"], ["tab-set", "p-set"]];
+  tabs.forEach(function (t) {
+    $(t[0]).addEventListener("click", function () {
+      tabs.forEach(function (o) {
+        $(o[0]).setAttribute("aria-selected", String(o[0] === t[0]));
+        $(o[1]).hidden = o[0] !== t[0];
+      });
+      if (t[0] === "tab-set") renderSet();
+    });
+  });
+
+  $("addExp").addEventListener("click", function () {
+    var amt = parseFloat($("e-amt").value);
+    var msg = $("expMsg"); msg.className = "msg";
+    if (!isFinite(amt) || amt <= 0) { msg.className = "msg err"; msg.textContent = "金額要大於 0。"; $("e-amt").focus(); return; }
+    if (!state.categories.length) { msg.className = "msg err"; msg.textContent = "先到分配設定建立類別。"; return; }
+    state.expenses.push({
+      id: uid(), date: $("e-date").value || iso(new Date()),
+      amount: Math.round(amt), categoryId: $("e-cat").value,
+      note: $("e-note").value.trim(), method: $("e-method").value
+    });
+    state.demo = false;
+    persist(); renderAll();
+    $("e-amt").value = ""; $("e-note").value = ""; $("e-amt").focus();
+    msg.textContent = "已加入。";
+  });
+
+  $("expList").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-del]"); if (!b) return;
+    var id = b.getAttribute("data-del");
+    state.expenses = state.expenses.filter(function (e) { return e.id !== id; });
+    persist(); renderAll();
+  });
+
+  $("clearDemo").addEventListener("click", function () {
+    state.expenses = []; state.demo = false;
+    persist(); renderAll();
+  });
+
+  $("catEditor").addEventListener("input", updateTotal);
+  $("catEditor").addEventListener("change", updateTotal);
+  $("catEditor").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-rm]"); if (!b) return;
+    var rows = readEditor();
+    if (rows.length <= 1) return;
+    var id = b.getAttribute("data-rm");
+    state.categories = rows.filter(function (c) { return c.id !== id; });
+    renderSet();
+  });
+
+  $("addCat").addEventListener("click", function () {
+    var rows = readEditor();
+    if (rows.length >= 6) return;
+    rows.push({ id: uid(), name: "新類別", pct: 0, type: "spend" });
+    state.categories = rows; renderSet();
+  });
+
+  Array.prototype.slice.call(document.querySelectorAll("[data-preset]")).forEach(function (b) {
+    b.addEventListener("click", function () {
+      state.categories = withIds(PRESETS[b.getAttribute("data-preset")]);
+      state.expenses = [];
+      renderSet();
+      $("setMsg").className = "msg";
+      $("setMsg").textContent = "已套用框架，記得按儲存。舊的支出紀錄因為類別換掉了，已一併清空。";
+    });
+  });
+
+  $("saveSet").addEventListener("click", function () {
+    var rows = readEditor();
+    var t = rows.reduce(function (a, c) { return a + c.pct; }, 0);
+    var msg = $("setMsg"); msg.className = "msg";
+    if (t !== 100) { msg.className = "msg err"; msg.textContent = "合計必須是 100%，現在是 " + t + "%。"; return; }
+    state.income = clamp($("s-income").value, 0, 1e9);
+    state.payday = Math.round(clamp($("s-payday").value, 1, 28));
+    state.categories = rows;
+    var ids = {}; rows.forEach(function (c) { ids[c.id] = 1; });
+    state.expenses = state.expenses.filter(function (e) { return ids[e.categoryId]; });
+    persist(); renderAll(); renderSet();
+    msg.textContent = "已儲存。";
+  });
+
+  // ---------- boot ----------
+  $("e-date").value = iso(new Date());
+  state = normalizeState(store.readLocal() || defaultState());
+  renderAll();
+
+  store.init().then(function (s) {
+    state = s;
+    $("e-date").value = iso(new Date());
+    renderAll();
+    if ($("tab-set").getAttribute("aria-selected") === "true") renderSet();
+  }).catch(function () { });
+})();
+</script>
